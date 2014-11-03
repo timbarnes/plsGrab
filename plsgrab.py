@@ -8,8 +8,11 @@ from re import sub, search, findall
 
 
 # Get the value of an external DEBUG shell variable to determine if we should print debug info
-DebugMode = int(os.environ["DEBUG"])
-
+try:
+    DebugMode = int(os.environ["DEBUG"])
+except:
+    DebugMode = 0
+    
 def DEBUG(level, string, object):
     """Print debug information if the debug level is set"""
     
