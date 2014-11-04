@@ -34,6 +34,7 @@ def get_one_stream_url(url):
         response = urllib2.urlopen(url)
         html = response.read()
         D(2, 'plsStream HTML', html)
+        # This regex finds a URL in the source of the page
         stream = search(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', html)
         D(1, 'get_one_stream_url found', stream.group())
         if stream:
