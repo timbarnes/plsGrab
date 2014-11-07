@@ -91,8 +91,6 @@ def get_stream_urls(url):
     
 
 def main():
-    global VERBOSE_MODE
-    global DEBUG_MODE
 
     args = sys.argv[1:]
 
