@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -tt
 
-# Read in a .pls file from the Internet, and print out the URL of the stream for mpd
+# Read in a .pls file from the Internet,
+# and print out the URL of the stream for mpd
 
 import sys
 import os
@@ -9,7 +10,7 @@ import urllib.request, urllib.error, urllib.parse
 from re import sub, search, findall
 
 
-# Get the value of an external DEBUG shell variable to determine if we should print debug info
+# Get the value of an external DEBUG shell variable to see if we should print debug info
 try:
     DEBUG_MODE = int(os.environ["DEBUG"])
 except:
@@ -20,14 +21,22 @@ URLTIMEOUT = 2
 def D(level, string, object):
     """Print debug information if the debug level is set
     """
-    
     if DEBUG_MODE >= level:
-        sys.stderr.write(string)
-        sys.stderr.write(': ')
-        sys.stderr.write(str(object))
-        sys.stderr.write('\n')
+        print(string, ':', str(object))
     return
+              
 
+def open_web_file(url):
+    """Given a URL, attempt to open and download the content of the page.
+    """
+    try:
+        response = urllib.request.urlopen(url, timeout = URLTIMEOUT)
+        html = response.read().decode('utf8')
+        return html
+    except urllib.error.URLError as e:
+        sys.stderr.write(str(e.reason))
+        sys.stderr.write('\n')
+        return ""
 
 def extract_pls(html):
     """Scan the provided .pls html for the first stream.
@@ -48,24 +57,25 @@ def extract_pls(html):
 def get_one_stream_url(url):
     """Extracts the first stream URL from the given .pls file
     """
-    
     D(1, 'get_one_stream_url looking for', url)
-    try:
-        response = urllib.request.urlopen(url, timeout = URLTIMEOUT)
-        html = response.read().decode('utf8')
-        stream_url = extract_pls(html)
-        return stream_url
-    except urllib.error.URLError as e:
-        sys.stderr.write(str(e.reason))
-        sys.stderr.write('\n')
-    return
+    html = open_web_file(url)
+    stream_url = extract_pls(html)
+    return stream_url
+
+
+def get_multiple_pls(html):
+    """Given html text, return a list of the embedded stream .pls urls.
+    """
+    response_list = []
+    pls_urls = findall(r'(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.pls)', html)
+    D(2, 'get_stream_urls found:', pls_urls)
+    return pls_urls
 
 
 def get_stream_urls(url):
     """If given a .pls URL, use regex to extract the URL up to the ? or end, whichever happens first.
     If a non-pls file, search the file for .pls entries, and process each.
     """
-
     response_list = []
     if url[-4:] == '.pls':
         D(1, 'Single Pls', url)
@@ -74,21 +84,10 @@ def get_stream_urls(url):
         return response_list
     else:
         D(1, 'get_stream_urls looking for multiple in', url)
-        try:
-            response = urllib.request.urlopen(url, timeout = URLTIMEOUT)
-            html = response.read().decode('utf8')
-            pls_urls = findall(r'(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.pls)', html)
-            D(2, 'get_stream_urls found:', pls_urls)
-            for pls_url in pls_urls:
-                D(1, 'get_stream_urls looking for', pls_url)
-                streamurl = get_one_stream_url(pls_url)
-                if streamurl:
-                    response_list.append(streamurl)
-            return response_list
-        except urllib.error.URLError as e:
-            sys.stderr.write(str(e.reason))
-            sys.stderr.write('\n')
-    return
+        html = open_web_file(url)
+        if html:
+            response_list = get_multiple_pls(html)
+            return [get_one_stream_url(f) for f in response_list]
     
 
 def main():
@@ -110,4 +109,4 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+    main()
